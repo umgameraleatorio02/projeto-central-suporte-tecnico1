@@ -6,117 +6,111 @@ Autor: **Ryan Vitor de Souza Ferreira**
 
 ## Sobre o projeto
 
-Simula uma central de suporte com **tela de login** e **dois perfis**:
+Central de suporte com **login**, **três perfis**, **prazos de SLA**, vários técnicos com **escalonamento**, painel do gestor com gráficos e relatório em PDF. O núcleo continua sendo o de AED I: **lista, fila e pilha encadeadas, escritas à mão**.
 
 | Perfil | Pode | Não pode |
 |---|---|---|
-| **Cliente** | abrir chamado, definir a importância (Baixa/Média/Alta, escolha obrigatória a cada chamado), enviar ao suporte, cancelar, acompanhar a posição na fila (só vê os próprios chamados) | atender ou ver a fila de outros |
-| **Técnico de TI** | ver a fila **a resolver**, **pegar** o próximo (um por vez) e ver os detalhes, **confirmar a resolução**, ver os **já solucionados**, desfazer o último registro, **atualizar** a lista | criar chamados |
+| **Cliente** | abrir chamado (descrição, categoria, importância, print opcional), enviar ao suporte, cancelar (só Aberto), conversar com a equipe, avaliar o atendimento, ver só os próprios chamados | atender ou ver chamados de outros |
+| **Técnico de TI** | ver a fila "a resolver", pegar um chamado por vez, confirmar a resolução, conversar, ver os solucionados, desfazer o próprio último registro, exportar CSV. **Nível 1** pode escalonar ao nível 2; **nível 2 (sênior)** atende primeiro a fila de escalonados | criar chamados |
+| **Gestor** | painel com indicadores e gráficos, todos os chamados (somente leitura), cadastro de usuários, prazos de SLA, auditoria, relatório em PDF e CSV | atender ou abrir chamados |
 
 Contas de demonstração (login simulado no navegador, sem segurança real):
 
-| Usuário | Senha | Perfil |
+| E-mail (login) | Senha | Perfil |
 |---|---|---|
-| ana | 1234 | Cliente |
-| bruno | 1234 | Cliente |
-| tecnico | ti2026 | Técnico de TI |
+| ana.souza@gmail.com | 1234 | Cliente |
+| bruno.lima@outlook.com | 1234 | Cliente |
+| ryan.vitor@gmail.com | ti2026 | Técnico de TI, nível 1 (Ryan Vitor) |
+| marina.alves@hotmail.com | ti2026 | Técnico de TI, nível 2 (Marina Alves) |
+| paula.ribeiro@outlook.com | gestor2026 | Gestor (Paula Ribeiro) |
 
-Fluxo: o cliente cria o chamado (**Aberto**), envia ao suporte (**Aguardando**, entra na fila), o técnico **pega** o chamado (**Em atendimento**, só um por vez) e, ao **confirmar a resolução**, ele vira **Concluído** e vai ao histórico. Os dados ficam salvos no navegador (`localStorage`); o botão **Atualizar** relê os dados salvos, útil com cliente e técnico em abas diferentes do mesmo navegador. Para recomeçar, use "Apagar dados salvos" na tela de login.
+O login é feito por e-mail, mas o sistema **não envia e-mails**: o endereço é só o nome de usuário (formato de e-mail validado ao cadastrar).
 
-## Objetivos
+## Dados de demonstração
 
-Demonstrar modularização, passagem de parâmetros, alocação de memória e estruturas encadeadas (lista, fila e pilha), com análise de complexidade e testes.
+Na primeira vez que abre (ou ao clicar em **Restaurar exemplos** na tela de login), o sistema já vem com 21 chamados: 13 resolvidos (com conversas, avaliações e escalonamentos), 2 em atendimento, 4 na fila (um perto do prazo e um atrasado), 2 abertos e um registro de auditoria. Eles são criados pelas mesmas operações do sistema (arquivo `js/demo.js`), com horários relativos ao momento da criação. **Começar do zero** limpa tudo.
+
+## Funcionalidades
+
+- **Prazo de atendimento (SLA):** o prazo depende da importância (padrão: Alta 4 h, Média 8 h, Baixa 24 h; o gestor altera) e conta a partir do envio ao suporte. Estados: no prazo, atenção (menos de 25% restante), atrasado, cumprido e violado. Ao estourar, gestor e técnicos são avisados uma vez.
+- **Conversa no chamado** entre cliente e técnico (enquanto está na fila ou em atendimento) e **linha do tempo** com todos os eventos.
+- **Notificações na tela** (sino) para novos chamados, mensagens, SLA estourado, escalonamento e conclusão.
+- **Vários técnicos** e **escalonamento** (fila de nível 2, atendida primeiro pelos sêniores).
+- **Cadastro de usuários** pelo gestor (criar, editar, ativar/desativar), com proteções (não desativar a si mesmo, manter ao menos um gestor, etc.).
+- **Busca e filtros** por texto, status, categoria e importância.
+- **Anexar print** (PNG/JPG, reduzido no navegador).
+- **Dashboard** com gráficos (por dia/semana, categoria, importância, status), com botão "Ver tabela" e tooltips.
+- **Relatório em PDF:** botão do gestor abre a impressão do navegador, escolha "Salvar como PDF".
+- **Modo escuro** (segue o sistema ou pelo botão) e **registro de auditoria** (últimos 500 eventos, com CSV).
+- Categoria e importância começam **sem seleção** e voltam a ficar vazias após cada chamado criado; sem elas, o sistema mostra erro.
+
+Fluxo: **Aberto** → (cliente envia) **Aguardando** → (técnico pega) **Em atendimento** → (confirma) **Concluído**. Um técnico só pega outro chamado depois de concluir ou escalonar o atual.
+
+Os dados ficam no navegador (`localStorage`, chave `suporte-dados-v2`). O botão **Atualizar** (e uma atualização automática a cada 30 s e entre abas) relê os dados. Para recomeçar, use "Restaurar exemplos" ou "Começar do zero" na tela de login.
 
 ## Estruturas de dados utilizadas
 
-| Estrutura | Na tela | Papel | Implementação |
-|---|---|---|---|
-| Lista simplesmente encadeada | Cadastro ("Meus chamados") | cadastro de todos os chamados | `js/lista.js` (nós, `inicio`, `fim`) |
-| Fila (FIFO) | Painel do TI: "A resolver" | chamados aguardando atendimento | `js/fila.js` (nós, `frente`, `tras`) |
-| Pilha (LIFO) | Painel do TI: "Já solucionados" | histórico de atendimentos | `js/pilha.js` (nós, `topo`) |
+| Estrutura | Onde aparece | Implementação |
+|---|---|---|
+| Lista simplesmente encadeada | cadastro de chamados; também usuários, notificações e auditoria | `js/lista.js` (`inicio`, `fim`) |
+| Fila (FIFO) | "A resolver" nível 1 e fila de nível 2 | `js/fila.js` (`frente`, `tras`) |
+| Pilha (LIFO) | histórico de solucionados (desfazer) | `js/pilha.js` (`topo`) |
 
-Todas são **encadeadas**: cada nó é um objeto (`new No(...)`) com uma referência ao próximo. Nenhuma usa `Array` para guardar os dados (o método `paraArray` existe só para desenhar na tela).
+Todas são **encadeadas**: cada nó é um objeto com referência ao próximo, sem usar `Array` para guardar os dados (`paraArray` existe só para desenhar a tela).
 
-### Estados do chamado
-
-```
-ABERTO -> AGUARDANDO -> EM_ATENDIMENTO -> CONCLUIDO
-  ^                                           |
-  +--------- (desfazer histórico) ------------+
-```
-
-- **Aberto:** só na lista. **Aguardando:** na lista e na fila. **Em atendimento:** o técnico pegou o chamado e ainda não confirmou a resolução (fora da fila e do histórico). **Concluído:** na lista e na pilha.
-- Só transições do diagrama são aceitas (`mudarStatus`).
-- Só se **cancela** (remove) chamado **Aberto**, e só o dono pode cancelar ou enviar o seu, para fila e pilha nunca apontarem para um chamado apagado.
-- **Desfazer** tira o último atendimento do histórico e **reabre** o chamado.
-- A prioridade é informativa; a fila é FIFO.
+Invariantes: na fila ou na fila de nível 2 ⇔ Aguardando; no histórico ⇔ Concluído; Em atendimento tem exatamente um técnico; só chamado Aberto pode ser cancelado.
 
 ## Memória em JavaScript (ponto de atenção)
 
-A alocação é explícita (`new No(...)` cria cada nó) e a lista é a dona dos chamados; fila e pilha guardam só referências. Ao remover, os ponteiros do nó são zerados (`= null`). A diferença para C: em JavaScript não existe `free`; a liberação final é feita pelo coletor de lixo quando nada mais aponta para o objeto. Se a disciplina exigir gerenciamento manual, vale confirmar com o professor.
-
-## Tecnologias
-
-HTML5, CSS3 e JavaScript puro (sem bibliotecas). Fonte IBM Plex Sans, do Google Fonts (se estiver sem internet, o sistema usa fontes padrão).
+A alocação é explícita (`new No(...)`), a lista é dona dos chamados e fila/pilha guardam só referências. Ao remover, os ponteiros do nó são zerados. Em JavaScript não existe `free`: o coletor de lixo libera o objeto quando nada mais aponta para ele. Se a disciplina exigir gerenciamento manual, vale confirmar com o professor.
 
 ## Estrutura do projeto
 
 ```
 suporte-web/
-  index.html          Interface
-  css/estilo.css      Aparência
-  js/chamado.js       TAD Chamado (dados e estados)
-  js/lista.js         TAD Lista encadeada
-  js/fila.js          TAD Fila
-  js/pilha.js         TAD Pilha
-  js/sistema.js       Regras (junta lista, fila e pilha)
-  js/acesso.js        Login e permissões por perfil
-  js/app.js           Tela: lê formulários, chama o Sistema, redesenha
-  tests/testes.js     Testes automatizados
+  index.html            Interface
+  css/estilo.css        Aparência (claro e escuro)
+  js/chamado.js         TAD Chamado
+  js/lista.js  fila.js  pilha.js   TADs encadeados
+  js/demo.js            Dados de exemplo para apresentação
+  js/sistema.js         Regras (SLA, escalonamento, usuários, indicadores)
+  js/acesso.js          Perfis e permissões
+  js/ui/                Telas: nucleo, graficos, detalhe, cliente, ti, gestor, relatorio
+  js/app.js             Login e inicialização
+  tests/testes.js       Testes automatizados
   README.md  RELATORIO.md
 ```
 
-`app.js` só cuida da tela; as regras ficam em `sistema.js`.
-
-## Como compilar
-
-Não precisa compilar: é JavaScript puro.
+A pasta `js/ui` só cuida da tela; as regras ficam em `sistema.js`.
 
 ## Como executar
 
-Dê **dois cliques em `index.html`** (abre no navegador) e entre com uma das contas acima. Não precisa de servidor nem de instalação. Para ver os dois perfis, use "Sair" e entre com outra conta, ou abra o `index.html` em duas abas.
+Não precisa compilar nem instalar nada: dê **dois cliques em `index.html`** e entre com uma conta acima. Para ver o fluxo completo, abra duas abas do mesmo navegador (uma como cliente, outra como técnico) e use "Atualizar".
 
 ## Como testar
 
-Com o [Node.js](https://nodejs.org) instalado, na pasta do projeto:
+Com o [Node.js](https://nodejs.org) instalado:
 
 ```
 node tests/testes.js
 ```
 
-São 22 testes: login e permissões por perfil, cadastro, busca (existente e inexistente), fila, atendimento, fila vazia, histórico, desfazer, pilha vazia, remoção (início, meio, fim), ID inexistente e regras de status.
-
-## Decisões de projeto
-
-- Ponteiro `fim` na lista e `tras` na fila: inserção em O(1).
-- Fila e pilha guardam referências, não cópias: o status fica num só lugar.
-- Em `atender`, o chamado só é empilhado depois de sair da fila, mantendo as invariantes.
-- IDs automáticos, nunca reaproveitados.
-- O texto digitado é escapado antes de ir para a tela.
-- Os scripts são carregados com `<script>` comum (e não módulos ES) para o sistema funcionar abrindo o arquivo direto, sem servidor.
+São **36 testes**: cadastro, busca, fila, histórico, desfazer, remoção, vários técnicos, escalonamento, SLA, conversa, linha do tempo, notificações, avaliação, indicadores, login, usuários, permissões, auditoria e salvar/restaurar e dados de demonstração.
 
 ## Complexidade
 
-| Estrutura | Operação | Custo | Por quê |
-|---|---|---|---|
-| Lista | inserir | O(1) | usa `fim` |
-| Lista | buscar | O(n) | percorre nó a nó |
-| Lista | remover | O(n) | busca + religar ponteiros |
-| Fila | enfileirar / desenfileirar / frente | O(1) | só mexe em `tras` ou `frente` |
-| Pilha | empilhar / desempilhar / topo | O(1) | só mexe no `topo` |
-| Todas | vazia | O(1) | compara uma referência |
+| Estrutura | Operação | Custo |
+|---|---|---|
+| Lista | inserir (usa `fim`) | O(1) |
+| Lista | buscar / remover | O(n) |
+| Fila | enfileirar, desenfileirar, frente | O(1) |
+| Pilha | empilhar, desempilhar, topo | O(1) |
+| Sistema | pegar, concluir, escalar, desfazer | O(1) (mais a busca do chamado do técnico, O(n)) |
+| Sistema | indicadores e relatório | O(n) |
 
-No sistema: enfileirar e remover são O(n) (começam com a busca); pegar, concluir e desfazer são O(1).
+## Limitações
+
+Login e senhas são simulados no navegador (em sistema real ficam no servidor, com senha criptografada); os dados ficam só neste navegador; as notificações aparecem na tela (não há e-mail).
 
 ## Autores
 
